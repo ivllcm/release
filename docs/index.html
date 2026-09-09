@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lombard Interfering-Talker Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ground:#f4f6f6; --surface:#ffffff; --surface-sunk:#e9eded;
+    --ink:#131a1d; --ink-soft:#4b585c; --ink-faint:#79878b;
+    --rule:#d6dcdd; --rule-soft:#e5eaea;
+    --accent:#0f5670; --accent-soft:#e2eef3; --focus:#0f5670;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0e1416; --surface:#161e21; --surface-sunk:#101819;
+      --ink:#e8eeef; --ink-soft:#a6b4b8; --ink-faint:#76858a;
+      --rule:#2a3639; --rule-soft:#1e292c;
+      --accent:#6fb9d4; --accent-soft:#16303b; --focus:#6fb9d4;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0e1416; --surface:#161e21; --surface-sunk:#101819;
+    --ink:#e8eeef; --ink-soft:#a6b4b8; --ink-faint:#76858a;
+    --rule:#2a3639; --rule-soft:#1e292c;
+    --accent:#6fb9d4; --accent-soft:#16303b; --focus:#6fb9d4;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1220px;margin:0 auto;padding:44px 28px 72px;display:flex;flex-direction:column;gap:40px}
+
+  .eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;
+    letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 10px}
+  h1{font-family:Spectral,Georgia,serif;font-weight:600;font-size:clamp(30px,4.4vw,44px);
+    line-height:1.12;margin:0 0 14px;text-wrap:balance;letter-spacing:-.01em}
+  .lede{max-width:64ch;margin:0;color:var(--ink-soft);font-size:16.5px}
+  .lede em{color:var(--ink);font-style:normal;font-weight:500}
+
+  .legend{display:flex;flex-wrap:wrap;gap:12px 26px;margin-top:22px;align-items:center;
+    font-size:13px;color:var(--ink-soft)}
+  .legend .bar{display:flex;align-items:center;gap:9px}
+  .scale{display:inline-block;height:9px;width:96px;position:relative;
+    border:1px solid var(--rule);border-radius:1px;overflow:hidden}
+  .scale img{display:block;width:100%;height:100%;object-fit:fill}
+  .tick{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px}
+
+  .scroller{overflow-x:auto;padding-bottom:4px}
+  .matrix{display:grid;grid-template-columns:126px repeat(4,minmax(212px,1fr));
+    gap:1px;background:var(--rule-soft);border:1px solid var(--rule);border-radius:3px;min-width:1000px}
+  .matrix > *{background:var(--surface)}
+
+  .colhead{padding:14px 16px 13px}
+  .colhead.corner{background:var(--surface-sunk)}
+  .colhead .n{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;
+    letter-spacing:.11em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:3px}
+  .colhead .t{font-weight:600;font-size:14.5px;display:block;line-height:1.3}
+  .colhead .s{font-size:12.5px;color:var(--ink-soft);display:block;margin-top:2px}
+  .colhead.ours{background:var(--accent-soft)}
+  .colhead.ours .t{color:var(--accent)}
+
+  .rowhead{background:var(--surface-sunk);padding:16px;display:flex;flex-direction:column;
+    justify-content:center;gap:6px}
+  .snr{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:23px;font-weight:500;
+    letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .rowhead .cond{font-size:12px;color:var(--ink-soft);line-height:1.35}
+  .rowhead .utt{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;
+    color:var(--ink-faint);line-height:1.5;margin-top:2px}
+
+  .cell{padding:14px 16px 16px;display:flex;flex-direction:column;gap:11px}
+  .cell.ours{background:color-mix(in srgb,var(--accent-soft) 42%,var(--surface))}
+
+  .spec{position:relative;display:block;border:1px solid var(--rule-soft);border-radius:2px;overflow:hidden;
+    background:transparent;line-height:0}
+  .spec img{display:block;width:100%;height:84px;object-fit:fill}
+  /* Playhead: a hairline that tracks the cell's own audio while it plays. */
+  .spec .bar{position:absolute;top:0;bottom:0;width:2px;left:0;will-change:left;
+    background:#fff;box-shadow:0 0 4px rgba(0,0,0,.55);
+    opacity:0;transition:opacity .12s linear;pointer-events:none}
+  .spec .bar.on{opacity:.92}
+  @media (prefers-reduced-motion:reduce){.spec .bar{transition:none}}
+
+  audio{width:100%;height:34px;display:block}
+  .vidwrap{position:relative;width:124px}
+  video.lip{width:124px;height:124px;display:block;image-rendering:pixelated;
+    border:1px solid var(--rule);border-radius:2px;background:var(--surface-sunk)}
+  /* The overlay button needs JS, so it stays hidden until JS turns it on;
+     without JS the video keeps its native controls instead. */
+  .playbtn{display:none}
+  .vidwrap.js .playbtn{position:absolute;inset:0;border:0;padding:0;cursor:pointer;background:transparent;
+    display:flex;align-items:center;justify-content:center;border-radius:2px}
+  .vidwrap.js .playbtn i{width:34px;height:34px;border-radius:50%;background:rgba(9,26,34,.62);
+    display:flex;align-items:center;justify-content:center;transition:transform .12s ease}
+  .vidwrap.js .playbtn i::after{content:"";margin-left:3px;border-left:12px solid #fff;
+    border-top:7.5px solid transparent;border-bottom:7.5px solid transparent}
+  .vidwrap.js .playbtn:hover i{transform:scale(1.08)}
+  .vidwrap.playing .playbtn i{opacity:0}
+  .vidwrap.playing .playbtn:hover i{opacity:1;background:rgba(9,26,34,.62)}
+  .vidwrap.playing .playbtn:hover i::after{margin:0;border:0;width:11px;height:14px;
+    border-left:4px solid #fff;border-right:4px solid #fff;content:""}
+
+
+  .metrics{display:flex;gap:16px;margin-top:auto;padding-top:4px}
+  .metric{display:flex;flex-direction:column;gap:1px}
+  .metric .k{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}
+  .metric .v{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:14px;
+    font-variant-numeric:tabular-nums}
+  .cell.ours .metric .v{color:var(--accent);font-weight:500}
+
+  .gridnote{font-size:12.5px;color:var(--ink-faint);margin:12px 0 0;max-width:80ch}
+  .tag{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);
+    border-radius:2px;padding:1px 5px;margin-left:8px;white-space:nowrap}
+
+  section h2{font-family:Spectral,Georgia,serif;font-weight:600;font-size:21px;
+    margin:0 0 6px;letter-spacing:-.005em}
+  section > p{max-width:66ch;color:var(--ink-soft);margin:0 0 18px}
+
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  caption{text-align:left;color:var(--ink-faint);font-size:12.5px;padding-bottom:8px}
+  th,td{text-align:left;padding:9px 16px 9px 0;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+  th{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-faint);font-weight:500;border-bottom:1px solid var(--rule)}
+  td.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;
+    text-align:right;padding-right:26px}
+  th.num{text-align:right;padding-right:26px}
+  tr.hl td{background:var(--accent-soft)}
+  tr.hl td:first-child{font-weight:600}
+
+  ol.notes{margin:0;padding:0;list-style:none;counter-reset:n;display:flex;flex-direction:column;gap:16px}
+  ol.notes li{counter-increment:n;display:grid;grid-template-columns:26px 1fr;gap:14px;max-width:74ch}
+  ol.notes li::before{content:counter(n);font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11.5px;color:var(--accent);padding-top:3px;font-variant-numeric:tabular-nums}
+  ol.notes b{font-weight:600;display:block;margin-bottom:1px}
+  ol.notes span{color:var(--ink-soft)}
+
+  .foot{border-top:1px solid var(--rule);padding-top:18px;font-size:12.5px;
+    color:var(--ink-faint);max-width:78ch}
+  a{color:var(--accent)}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Listening demo</p>
+    <h1>Listening demo</h1>
+    <p class="lede">Each row is one recorded sentence mixed with <em>a second talker from the same corpus</em>, at a fixed signal-to-noise ratio, from −10 dB up to +10 dB. Reading left to right: what the network hears, what an audio-only network recovers from it, what the audio-visual system recovers when it can also watch the target speaker's mouth, and the clean recording underneath.</p>
+    <div class="legend">
+      <span class="bar"><span class="tick">quiet</span><span class="scale"><img src="media/scale.png" alt=""></span><span class="tick">loud</span></span>
+      <span>spectrogram magnitude over an 80 dB range, one scale across every panel</span>
+      <span>16 kHz mono · lip video 64 × 64 at 25 fps</span>
+    </div>
+  </header>
+
+  <div>
+    <div class="scroller">
+      <div class="matrix">
+<div class="colhead corner"></div>
+<div class="colhead"><span class="t">Input (Mixture)</span><span class="s">target + interferer, with the lip video</span></div>
+<div class="colhead"><span class="t">Audio only</span><span class="s">a full-precision network trained without video</span></div>
+<div class="colhead ours"><span class="t">Audio + Visual (Measured)</span><span class="s">the measured output</span></div>
+<div class="colhead"><span class="t">Clean target</span><span class="s">the recording before mixing</span></div>
+<div class="rowhead"><span class="snr">−10 dB</span><span class="cond">interferer 10 dB louder</span><span class="utt">s34_l_lbbt1n<br>2.43&thinsp;s</span></div>
+<div class="cell"><span class="spec"><img src="media/m10_mixture_spec.png" alt="Input (Mixture) spectrogram"></span><div class="vidwrap"><video class="lip" controls playsinline preload="metadata" src="media/m10_lip.mp4"></video><button class="playbtn" type="button" aria-label="Play the mixture with the lip video"><i></i></button></div><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">1.069</span></div><div class="metric"><span class="k">sdr</span><span class="v">-10.13</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.559</span></div></div></div>
+<div class="cell"><span class="spec"><img src="media/m10_aonly_spec.png" alt="Audio only spectrogram"></span><audio controls preload="none" src="media/m10_aonly.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">1.111</span></div><div class="metric"><span class="k">sdr</span><span class="v">-3.35</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.612</span></div></div></div>
+<div class="cell ours"><span class="spec"><img src="media/m10_av_spec.png" alt="Audio + Visual (Measured) spectrogram"></span><audio controls preload="none" src="media/m10_av.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">1.449</span></div><div class="metric"><span class="k">sdr</span><span class="v">3.38</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.750</span></div></div></div>
+<div class="cell"><span class="spec"><img src="media/m10_clean_spec.png" alt="Clean target spectrogram"></span><audio controls preload="none" src="media/m10_clean.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">4.644</span></div><div class="metric"><span class="k">sdr</span><span class="v">—</span></div><div class="metric"><span class="k">stoi</span><span class="v">1.000</span></div></div></div>
+<div class="rowhead"><span class="snr">−5 dB</span><span class="cond">interferer 5 dB louder</span><span class="utt">s43_l_bbwn1s<br>2.82&thinsp;s</span></div>
+<div class="cell"><span class="spec"><img src="media/m5_mixture_spec.png" alt="Input (Mixture) spectrogram"></span><div class="vidwrap"><video class="lip" controls playsinline preload="metadata" src="media/m5_lip.mp4"></video><button class="playbtn" type="button" aria-label="Play the mixture with the lip video"><i></i></button></div><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">1.109</span></div><div class="metric"><span class="k">sdr</span><span class="v">-5.09</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.564</span></div></div></div>
+<div class="cell"><span class="spec"><img src="media/m5_aonly_spec.png" alt="Audio only spectrogram"></span><audio controls preload="none" src="media/m5_aonly.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">1.423</span></div><div class="metric"><span class="k">sdr</span><span class="v">-1.25</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.711</span></div></div></div>
+<div class="cell ours"><span class="spec"><img src="media/m5_av_spec.png" alt="Audio + Visual (Measured) spectrogram"></span><audio controls preload="none" src="media/m5_av.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">2.279</span></div><div class="metric"><span class="k">sdr</span><span class="v">10.37</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.901</span></div></div></div>
+<div class="cell"><span class="spec"><img src="media/m5_clean_spec.png" alt="Clean target spectrogram"></span><audio controls preload="none" src="media/m5_clean.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">4.644</span></div><div class="metric"><span class="k">sdr</span><span class="v">—</span></div><div class="metric"><span class="k">stoi</span><span class="v">1.000</span></div></div></div>
+<div class="rowhead"><span class="snr">0 dB</span><span class="cond">equal power</span><span class="utt">s41_l_pwaf9s<br>2.55&thinsp;s</span></div>
+<div class="cell"><span class="spec"><img src="media/0_mixture_spec.png" alt="Input (Mixture) spectrogram"></span><div class="vidwrap"><video class="lip" controls playsinline preload="metadata" src="media/0_lip.mp4"></video><button class="playbtn" type="button" aria-label="Play the mixture with the lip video"><i></i></button></div><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">1.525</span></div><div class="metric"><span class="k">sdr</span><span class="v">-0.09</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.960</span></div></div></div>
+<div class="cell"><span class="spec"><img src="media/0_aonly_spec.png" alt="Audio only spectrogram"></span><audio controls preload="none" src="media/0_aonly.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">1.931</span></div><div class="metric"><span class="k">sdr</span><span class="v">9.83</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.974</span></div></div></div>
+<div class="cell ours"><span class="spec"><img src="media/0_av_spec.png" alt="Audio + Visual (Measured) spectrogram"></span><audio controls preload="none" src="media/0_av.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">2.822</span></div><div class="metric"><span class="k">sdr</span><span class="v">11.84</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.985</span></div></div></div>
+<div class="cell"><span class="spec"><img src="media/0_clean_spec.png" alt="Clean target spectrogram"></span><audio controls preload="none" src="media/0_clean.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">4.644</span></div><div class="metric"><span class="k">sdr</span><span class="v">—</span></div><div class="metric"><span class="k">stoi</span><span class="v">1.000</span></div></div></div>
+<div class="rowhead"><span class="snr">+5 dB</span><span class="cond">target 5 dB louder</span><span class="utt">s29_l_brwv3n<br>2.38&thinsp;s</span></div>
+<div class="cell"><span class="spec"><img src="media/5_mixture_spec.png" alt="Input (Mixture) spectrogram"></span><div class="vidwrap"><video class="lip" controls playsinline preload="metadata" src="media/5_lip.mp4"></video><button class="playbtn" type="button" aria-label="Play the mixture with the lip video"><i></i></button></div><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">1.206</span></div><div class="metric"><span class="k">sdr</span><span class="v">5.07</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.757</span></div></div></div>
+<div class="cell"><span class="spec"><img src="media/5_aonly_spec.png" alt="Audio only spectrogram"></span><audio controls preload="none" src="media/5_aonly.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">1.578</span></div><div class="metric"><span class="k">sdr</span><span class="v">9.77</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.790</span></div></div></div>
+<div class="cell ours"><span class="spec"><img src="media/5_av_spec.png" alt="Audio + Visual (Measured) spectrogram"></span><audio controls preload="none" src="media/5_av.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">2.403</span></div><div class="metric"><span class="k">sdr</span><span class="v">16.67</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.881</span></div></div></div>
+<div class="cell"><span class="spec"><img src="media/5_clean_spec.png" alt="Clean target spectrogram"></span><audio controls preload="none" src="media/5_clean.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">4.644</span></div><div class="metric"><span class="k">sdr</span><span class="v">—</span></div><div class="metric"><span class="k">stoi</span><span class="v">1.000</span></div></div></div>
+<div class="rowhead"><span class="snr">+10 dB</span><span class="cond">target 10 dB louder</span><span class="utt">s28_l_prbf5p<br>2.62&thinsp;s</span></div>
+<div class="cell"><span class="spec"><img src="media/10_mixture_spec.png" alt="Input (Mixture) spectrogram"></span><div class="vidwrap"><video class="lip" controls playsinline preload="metadata" src="media/10_lip.mp4"></video><button class="playbtn" type="button" aria-label="Play the mixture with the lip video"><i></i></button></div><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">1.851</span></div><div class="metric"><span class="k">sdr</span><span class="v">10.02</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.957</span></div></div></div>
+<div class="cell"><span class="spec"><img src="media/10_aonly_spec.png" alt="Audio only spectrogram"></span><audio controls preload="none" src="media/10_aonly.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">2.224</span></div><div class="metric"><span class="k">sdr</span><span class="v">13.72</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.960</span></div></div></div>
+<div class="cell ours"><span class="spec"><img src="media/10_av_spec.png" alt="Audio + Visual (Measured) spectrogram"></span><audio controls preload="none" src="media/10_av.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">3.051</span></div><div class="metric"><span class="k">sdr</span><span class="v">16.87</span></div><div class="metric"><span class="k">stoi</span><span class="v">0.975</span></div></div></div>
+<div class="cell"><span class="spec"><img src="media/10_clean_spec.png" alt="Clean target spectrogram"></span><audio controls preload="none" src="media/10_clean.wav"></audio><div class="metrics"><div class="metric"><span class="k">pesq</span><span class="v">4.644</span></div><div class="metric"><span class="k">sdr</span><span class="v">—</span></div><div class="metric"><span class="k">stoi</span><span class="v">1.000</span></div></div></div>
+      </div>
+    </div>
+    <p class="gridnote">Each spectrogram spans 0–8 kHz vertically and the full utterance horizontally. The video in the input column carries that row's mixture audio. Scores are computed against the clean target of the same row; SDR is scale-invariant, so the clean reference has none.</p>
+  </div>
+
+  <p class="foot">Source material: Lombard GRID (Alghamdi, Maddock, Marxer, Barker &amp; Brown, <i>JASA</i> 143, EL523, 2018), CC BY 4.0. Audio re-encoded to 16-bit PCM and additively mixed; video cropped to the lip region and resized.</p>
+
+</div>
+
+<script>
+  const stop = () => document.querySelectorAll('video, audio').forEach(m => m.pause());
+
+
+  document.querySelectorAll('.vidwrap').forEach(wrap => {
+    const v = wrap.querySelector('video');
+    // Progressive enhancement: the markup ships with native controls so the
+    // video is playable without scripting. With JS the overlay button replaces
+    // them, since the native bar is cramped at this size.
+    v.removeAttribute('controls');
+    wrap.classList.add('js');
+    wrap.querySelector('.playbtn').addEventListener('click', () => {
+      if (v.paused) { stop(); v.play(); } else { v.pause(); }
+    });
+    v.addEventListener('play',  () => wrap.classList.add('playing'));
+    v.addEventListener('pause', () => wrap.classList.remove('playing'));
+    v.addEventListener('ended', () => wrap.classList.remove('playing'));
+  });
+
+  // One playhead per cell, driven by whichever element that cell plays.
+  document.querySelectorAll('.cell').forEach(cell => {
+    const spec = cell.querySelector('.spec');
+    const media = cell.querySelector('audio, video');
+    if (!spec || !media) return;
+    const bar = document.createElement('i');
+    bar.className = 'bar';
+    spec.appendChild(bar);
+    // Driven by the frame clock rather than `timeupdate`, which only fires a
+    // few times a second and makes the bar visibly step.
+    let raf = 0;
+    const move = () => {
+      if (isFinite(media.duration) && media.duration) {
+        bar.style.left = (media.currentTime / media.duration * 100) + '%';
+      }
+    };
+    const tick = () => { move(); raf = requestAnimationFrame(tick); };
+    const start = () => { if (!raf) { bar.classList.add('on'); tick(); } };
+    const stop = () => {
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      bar.classList.remove('on');
+    };
+    media.addEventListener('play', start);
+    media.addEventListener('seeking', move);
+    media.addEventListener('pause', stop);
+    media.addEventListener('ended', stop);
+  });
+
+  document.querySelectorAll('audio').forEach(a => {
+    a.addEventListener('play', () => {
+      document.querySelectorAll('video, audio').forEach(m => { if (m !== a) m.pause(); });
+    });
+  });
+</script>
+</body>
+</html>

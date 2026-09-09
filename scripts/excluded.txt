@@ -1,0 +1,14 @@
+# Utterances dropped from the corpus.
+# Lines beginning with '#' are comments; the entries themselves may contain '#'.
+#
+# Unreadable video -- the .mov has no moov atom, opens to zero frames, and
+# lip_make.py produces no crop for it:
+./audio/s32_l_pwip9p.wav
+./audio/s32_p_bwwj2n.wav
+./audio/s33_l_pwajza.wav
+./audio/s33_p_sgwq2s.wav
+#
+# Silent takes -- the corpus marks these '#sil' and they run 12 and 10 frames
+# against a typical 60, so there is next to no speech to recover:
+./audio/s27_l_bah2s_WRONG_#sil.wav
+./audio/s28_l_gik8a_WRONG_#sil.wav

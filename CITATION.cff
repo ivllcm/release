@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this dataset, please cite the source corpus below."
+title: "Audio-Visual Speech Enhancement — Interfering-Talker Mixture Set"
+abstract: >
+  Lombard GRID utterances additively mixed with an interfering talker at five
+  fixed SNRs, paired with cropped lip video of the target speaker.
+license: CC-BY-4.0
+authors:
+  - name: "[PLACEHOLDER — withheld during review]"
+references:
+  - type: article
+    title: "A corpus of audio-visual Lombard speech with frontal and profile views"
+    authors:
+      - family-names: Alghamdi
+        given-names: Najwa
+      - family-names: Maddock
+        given-names: Steve
+      - family-names: Marxer
+        given-names: Ricard
+      - family-names: Barker
+        given-names: Jon
+      - family-names: Brown
+        given-names: "Guy J."
+    journal: "The Journal of the Acoustical Society of America"
+    volume: 143
+    issue: 6
+    year: 2018
+    doi: 10.1121/1.5042758
