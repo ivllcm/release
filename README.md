@@ -48,7 +48,8 @@ quieter:
 ![The lip video playing beside four spectrograms of the same 0 dB mixture: the mixture itself, an audio-only network's output, the measured audio-visual output, and the clean target](docs/demo.gif)
 
 > [!TIP]
-> **To hear any of this, open `docs/index.html` in a browser** — The figures above are stills of that page, for readers who only have the rendered README.
+> **To hear any of this, open the live page:** https://ivllcm.github.io/release/
+> The figures above are stills of that page, for readers who only have the rendered README.
 
 ## Worked examples
 
